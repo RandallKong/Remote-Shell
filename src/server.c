@@ -36,6 +36,9 @@ static void parse_command(char *buffer, char *args[]);
 pid_t create_child_process(void);
 void  await_child_process(void);
 
+void redirect_output(int fd);
+void restore_output(void);
+
 #define BASE_TEN 10
 #define MAX_CLIENTS 32
 #define BUFFER_SIZE 10000
@@ -47,6 +50,15 @@ struct ClientInfo
     int client_socket;
     int client_index;
 };
+
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+static int original_stdout;
+
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+static int original_stderr;
+
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+// static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 static int clients[MAX_CLIENTS] = {0};
@@ -87,45 +99,71 @@ void *handle_client(void *arg)
         if(bytes_received <= 0)
         {
             clients[client_index] = 0;
-            // printf("Client %d closed the connection.\n", client_index);    // not sure why printing when server closes after message received.
             close(client_socket);
             clients[client_index] = 0;
             free(client_info);
             pthread_exit(NULL);
         }
 
-        // Null-terminate the received data
+        //        pthread_mutex_lock(&mutex);
 
-        // Find the position of the newline character
         newline_pos = strchr(buffer, '\n');
-
-        // If the newline character is found, replace it with a null terminator
         if(newline_pos != NULL)
         {
             *newline_pos = '\0';
         }
 
-        // buffer[bytes_received] = '\0';
-
-        // buffer[bytes_received] = '\0';
-        printf("-------------------------------------------------------------------------\n");
+        restore_output();
         printf("Received from Client %d: %s\n", client_socket, buffer);
 
-        // Broadcast the message to all other connected clients
-        //        for(int i = 0; i < MAX_CLIENTS; ++i)
-        //        {
-        //            if(clients[i] != 0 && i != client_index)
-        //            {
-        //                send(clients[i], buffer, strlen(buffer), 0);
-        //                printf("%d <-------- %s", clients[i], buffer);
-        //            }
-        //        }
-        // TODO: exec and redirect results
-
+        redirect_output(client_socket);
         execute_command(buffer, client_socket);
+        restore_output();
+
+        //        pthread_mutex_unlock(&mutex);
     }
 
     return NULL;
+}
+
+void redirect_output(int fd)
+{
+    // Save the original file descriptors
+    original_stdout = fcntl(STDOUT_FILENO, F_DUPFD_CLOEXEC);
+    original_stderr = fcntl(STDERR_FILENO, F_DUPFD_CLOEXEC);
+
+    // Duplicate the file descriptor for stdout to fd
+    if(dup2(fd, STDOUT_FILENO) == -1)
+    {
+        perror("dup2");
+        return;
+    }
+
+    // Duplicate the file descriptor for stderr to fd
+    if(dup2(fd, STDERR_FILENO) == -1)
+    {
+        perror("dup2");
+        return;
+    }
+}
+
+void restore_output(void)
+{
+    // Duplicate the original file descriptors back to stdout and stderr
+    if(dup2(original_stdout, STDOUT_FILENO) == -1)
+    {
+        perror("dup2");
+        return;
+    }
+    if(dup2(original_stderr, STDERR_FILENO) == -1)
+    {
+        perror("dup2");
+        return;
+    }
+
+    //    // Close the duplicated file descriptors
+    //    close(original_stdout);
+    //    close(original_stderr);
 }
 
 static void execute_command(char *buffer, int client_socket)

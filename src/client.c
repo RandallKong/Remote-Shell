@@ -293,6 +293,9 @@ static void handle_connection(int sockfd)
     printf("Connected to the server. Type your messages and press Enter to send. "
            "Press Ctrl-c to exit or Ctrl-D to close the Server Connection.\n");
 
+    printf("$ ");
+    fflush(stdout);    // Make sure the prompt is printed immediately
+
     // Start a simple chat loop
     while(1)
     {
@@ -307,7 +310,6 @@ static void handle_connection(int sockfd)
 
         if(activity < 0)
         {
-            //            perror("Select error");
             break;
         }
 
@@ -325,13 +327,20 @@ static void handle_connection(int sockfd)
 
             server_buffer[bytes_received] = '\0';
 
-            printf("Received: %s\n", server_buffer);
+            printf("\n");
+            printf("%s", server_buffer);
+            fflush(stdout);
+            printf("-------------------------------------------------------------\n");
+            printf("$ ");
+            fflush(stdout);    // Make sure the prompt is printed immediately
         }
 
         // Check if there is user input
         if(FD_ISSET((long unsigned int)STDIN_FILENO, &readfds))
         {
-            char client_buffer[BUFFER_SIZE];
+            char  client_buffer[BUFFER_SIZE];
+//            char *newline_pos;
+
             if(fgets(client_buffer, sizeof(client_buffer), stdin) == NULL)
             {
                 // Ctrl-D was pressed, causing EOF
@@ -344,6 +353,14 @@ static void handle_connection(int sockfd)
                 perror("Error sending message");
                 break;
             }
+
+//            newline_pos = strchr(client_buffer, '\n');
+//            if(newline_pos != NULL)
+//            {
+//                *newline_pos = '\0';
+//            }
+
+//            printf("---------------result of -> %s-----------------------------\n", client_buffer);
         }
     }
 

@@ -30,10 +30,17 @@ static void      socket_close(int sockfd);
 static void *handle_client(void *arg);
 static void  start_server(struct sockaddr_storage addr, in_port_t port);
 
+static void execute_command(char *buffer, int client_socket);
+static void parse_command(char *buffer, char *args[]);
+
+pid_t create_child_process(void);
+void  await_child_process(void);
+
 #define BASE_TEN 10
 #define MAX_CLIENTS 32
-#define BUFFER_SIZE 1024
+#define BUFFER_SIZE 10000
 #define UINT16_MAX 65535
+#define MAX_ARGS 100
 
 struct ClientInfo
 {
@@ -73,32 +80,115 @@ void *handle_client(void *arg)
     int                client_socket = client_info->client_socket;
     int                client_index  = client_info->client_index;
 
-    while(1)
+    while(!exit_flag)
     {
+        char   *newline_pos;
         ssize_t bytes_received = recv(client_socket, buffer, sizeof(buffer) - 1, 0);
         if(bytes_received <= 0)
         {
             clients[client_index] = 0;
-            printf("Client %d closed the connection.\n", client_index);
+            // printf("Client %d closed the connection.\n", client_index);    // not sure why printing when server closes after message received.
             close(client_socket);
             clients[client_index] = 0;
             free(client_info);
             pthread_exit(NULL);
         }
 
-        buffer[bytes_received] = '\0';
-        printf("Received from Client %d: %s", client_socket, buffer);
+        // Null-terminate the received data
+
+        // Find the position of the newline character
+        newline_pos = strchr(buffer, '\n');
+
+        // If the newline character is found, replace it with a null terminator
+        if(newline_pos != NULL)
+        {
+            *newline_pos = '\0';
+        }
+
+        // buffer[bytes_received] = '\0';
+
+        // buffer[bytes_received] = '\0';
+        printf("-------------------------------------------------------------------------\n");
+        printf("Received from Client %d: %s\n", client_socket, buffer);
 
         // Broadcast the message to all other connected clients
-        for(int i = 0; i < MAX_CLIENTS; ++i)
-        {
-            if(clients[i] != 0 && i != client_index)
-            {
-                send(clients[i], buffer, strlen(buffer), 0);
-                printf("%d <-------- %s", clients[i], buffer);
-            }
-        }
+        //        for(int i = 0; i < MAX_CLIENTS; ++i)
+        //        {
+        //            if(clients[i] != 0 && i != client_index)
+        //            {
+        //                send(clients[i], buffer, strlen(buffer), 0);
+        //                printf("%d <-------- %s", clients[i], buffer);
+        //            }
+        //        }
+        // TODO: exec and redirect results
+
+        execute_command(buffer, client_socket);
     }
+
+    return NULL;
+}
+
+static void execute_command(char *buffer, int client_socket)
+{
+    pid_t childPid;
+    char *args[MAX_ARGS];
+
+    (void)client_socket;    // used for dup2
+
+    parse_command(buffer, args);
+
+    childPid = create_child_process();
+
+    if(childPid == 0)
+    {
+        // TODO: exec command
+        execvp(args[0], args);
+        // If execvp returns, an error occurred
+        perror("execvp");
+        // printf("executing\n");
+    }
+    else
+    {
+        await_child_process();
+    }
+}
+
+static void parse_command(char *buffer, char *args[])
+{
+    char *saveptr;
+    char *token;
+    int   counter = 0;
+
+    token = strtok_r(buffer, " ", &saveptr);
+
+    while(token != NULL && counter < MAX_ARGS - 1)
+    {
+        args[counter] = token;
+        counter++;
+        token = strtok_r(NULL, " ", &saveptr);
+    }
+
+    args[counter] = NULL;    // Null-terminate the array
+}
+
+pid_t create_child_process(void)
+{
+    pid_t childPid = fork();
+
+    if(childPid == -1)
+    {
+        perror("Error creating child process");
+        exit(EXIT_FAILURE);
+    }
+
+    return childPid;
+}
+
+void await_child_process(void)
+{
+    int child;
+
+    wait(&child);
 }
 
 static void start_server(struct sockaddr_storage addr, in_port_t port)
@@ -200,21 +290,21 @@ static void start_server(struct sockaddr_storage addr, in_port_t port)
         }
 
         // Check if there is input from the server's console
-        if(FD_ISSET(STDIN_FILENO, &readfds))
-        {
-            char server_buffer[BUFFER_SIZE];
-            fgets(server_buffer, sizeof(server_buffer), stdin);
-
-            // Broadcast the server's message to all connected clients
-            for(int i = 0; i < MAX_CLIENTS; ++i)
-            {
-                if(clients[i] != 0)
-                {
-                    send(clients[i], server_buffer, strlen(server_buffer), 0);
-                    printf("%d <-------- %s", clients[i], server_buffer);
-                }
-            }
-        }
+        //        if(FD_ISSET(STDIN_FILENO, &readfds))
+        //        {
+        //            char server_buffer[BUFFER_SIZE];
+        //            fgets(server_buffer, sizeof(server_buffer), stdin);
+        //
+        //            // Broadcast the server's message to all connected clients
+        //            for(int i = 0; i < MAX_CLIENTS; ++i)
+        //            {
+        //                if(clients[i] != 0)
+        //                {
+        //                    send(clients[i], server_buffer, strlen(server_buffer), 0);
+        //                    printf("%d <-------- %s", clients[i], server_buffer);
+        //                }
+        //            }
+        //        }
     }
 
     // Close server socket

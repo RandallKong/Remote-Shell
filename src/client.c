@@ -39,7 +39,7 @@ static void socket_close(int sockfd);
 #define IP_ADDR_INDEX 1
 #define PORT_INDEX 2
 #define BASE_TEN 10
-#define BUFFER_SIZE 1000
+#define BUFFER_SIZE 5000
 
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 static volatile sig_atomic_t exit_flag = 0;
@@ -251,8 +251,9 @@ static void socket_connect(int sockfd, struct sockaddr_storage *addr, in_port_t 
         exit(EXIT_FAILURE);
     }
 
-    printf("Connecting to: %s:%u\n", addr_str, port);
-    printf("You are now chatting with the host of %s:%u\n", addr_str, port);
+    printf("\nYou are now connected to the remote host at %s:%u.\n", addr_str, port);
+    printf("\nType your commands and press Enter to execute them.\n");
+    printf("Press Ctrl-C to quit.\n");
 }
 
 #ifdef __clang__
@@ -289,9 +290,6 @@ static void handle_connection(int sockfd)
         perror("Error setting FD_CLOEXEC on socket");
         exit(EXIT_FAILURE);
     }
-
-    printf("Connected to the server. Type your messages and press Enter to send. "
-           "Press Ctrl-c to exit or Ctrl-D to close the Server Connection.\n");
 
     printf("$ ");
     fflush(stdout);    // Make sure the prompt is printed immediately
@@ -338,8 +336,8 @@ static void handle_connection(int sockfd)
         // Check if there is user input
         if(FD_ISSET((long unsigned int)STDIN_FILENO, &readfds))
         {
-            char  client_buffer[BUFFER_SIZE];
-//            char *newline_pos;
+            char client_buffer[BUFFER_SIZE];
+            //            char *newline_pos;
 
             if(fgets(client_buffer, sizeof(client_buffer), stdin) == NULL)
             {
@@ -354,13 +352,13 @@ static void handle_connection(int sockfd)
                 break;
             }
 
-//            newline_pos = strchr(client_buffer, '\n');
-//            if(newline_pos != NULL)
-//            {
-//                *newline_pos = '\0';
-//            }
+            //            newline_pos = strchr(client_buffer, '\n');
+            //            if(newline_pos != NULL)
+            //            {
+            //                *newline_pos = '\0';
+            //            }
 
-//            printf("---------------result of -> %s-----------------------------\n", client_buffer);
+            //            printf("---------------result of -> %s-----------------------------\n", client_buffer);
         }
     }
 

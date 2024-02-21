@@ -171,19 +171,37 @@ static void execute_command(char *buffer, int client_socket)
     pid_t childPid;
     char *args[MAX_ARGS];
 
-    (void)client_socket;    // used for dup2
-
     parse_command(buffer, args);
 
     childPid = create_child_process();
 
+    (void)client_socket;
+
     if(childPid == 0)
     {
-        // TODO: exec command
-        execvp(args[0], args);
-        // If execvp returns, an error occurred
-        perror("execvp");
-        // printf("executing\n");
+        // Construct the full path to the command
+        char *path = getenv("PATH");
+        char *saveptr;
+        char *token = strtok_r(path, ":", &saveptr);
+        char  full_path[BUFFER_SIZE];    // Adjust the size as needed
+
+        while(token != NULL)
+        {
+            snprintf(full_path, sizeof(full_path), "%s/%s", token, args[0]);
+            if(access(full_path, X_OK) == 0)
+            {
+                // Execute the command with execv
+                execv(full_path, args);
+                // If execv returns, an error occurred
+                perror("execv");
+                exit(EXIT_FAILURE);
+            }
+            token = strtok_r(NULL, ":", &saveptr);
+        }
+
+        // If the command is not found
+        fprintf(stderr, "Command not found: %s\n", args[0]);
+        exit(EXIT_FAILURE);
     }
     else
     {

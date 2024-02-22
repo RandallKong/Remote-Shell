@@ -303,6 +303,9 @@ static void handle_connection(int sockfd)
         FD_SET((long unsigned int)sockfd, &readfds);
         FD_SET((long unsigned int)STDIN_FILENO, &readfds);
 
+        //        printf("$ ");
+        //        fflush(stdout);    // Make sure the prompt is printed immediately
+
         // Wait for activity on the socket or user input
         activity = select(sockfd + 1, &readfds, NULL, NULL, NULL);
 
@@ -329,6 +332,9 @@ static void handle_connection(int sockfd)
             printf("%s", server_buffer);
             fflush(stdout);
             printf("-------------------------------------------------------------\n");
+            // printf("$ ");
+            fflush(stdout);    // Make sure the prompt is printed immediately
+            //            printf("-------------------------------------------------------------\n");
             printf("$ ");
             fflush(stdout);    // Make sure the prompt is printed immediately
         }
@@ -359,7 +365,10 @@ static void handle_connection(int sockfd)
             //            }
 
             //            printf("---------------result of -> %s-----------------------------\n", client_buffer);
+            // continue;
         }
+
+        printf("$ ");
     }
 
     // Close the client socket when the loop exits

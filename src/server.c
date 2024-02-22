@@ -42,7 +42,7 @@ void restore_output(void);
 #define BASE_TEN 10
 #define MAX_CLIENTS 32
 #define BUFFER_SIZE 10000
-#define UINT16_MAX 65535
+//#define UINT16_MAX 65535
 #define MAX_ARGS 100
 
 struct ClientInfo
@@ -53,6 +53,9 @@ struct ClientInfo
 
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 static int original_stdout;
+
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+static int original_stdin;
 
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 static int original_stderr;
@@ -130,10 +133,17 @@ void redirect_output(int fd)
 {
     // Save the original file descriptors
     original_stdout = fcntl(STDOUT_FILENO, F_DUPFD_CLOEXEC);
+    original_stdin = fcntl(STDIN_FILENO, F_DUPFD_CLOEXEC);
     original_stderr = fcntl(STDERR_FILENO, F_DUPFD_CLOEXEC);
 
     // Duplicate the file descriptor for stdout to fd
     if(dup2(fd, STDOUT_FILENO) == -1)
+    {
+        perror("dup2");
+        return;
+    }
+
+    if(dup2(fd, STDIN_FILENO) == -1)
     {
         perror("dup2");
         return;
@@ -155,7 +165,14 @@ void restore_output(void)
         perror("dup2");
         return;
     }
+
     if(dup2(original_stderr, STDERR_FILENO) == -1)
+    {
+        perror("dup2");
+        return;
+    }
+
+    if(dup2(original_stdin, STDIN_FILENO) == -1)
     {
         perror("dup2");
         return;

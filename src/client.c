@@ -105,8 +105,8 @@ static void parse_arguments(int argc, char *argv[], char **ip_address, char **po
     else
     {
         printf("invalid num args\n");
-        printf("usage: ./chat [ip addr] [port]\n");
-        printf("usage: ./chat [ip addr] [port] < [.txt file]\n");
+        printf("usage: %s [ip addr] [port]\n", argv[0]);
+        //        printf("usage: ./chat [ip addr] [port] < [.txt file]\n");
         exit(EXIT_FAILURE);
     }
 }

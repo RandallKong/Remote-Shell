@@ -42,7 +42,7 @@ void restore_output(void);
 #define BASE_TEN 10
 #define MAX_CLIENTS 32
 #define BUFFER_SIZE 10000
-//#define UINT16_MAX 65535
+// #define UINT16_MAX 65535
 #define MAX_ARGS 100
 
 struct ClientInfo
@@ -133,7 +133,7 @@ void redirect_output(int fd)
 {
     // Save the original file descriptors
     original_stdout = fcntl(STDOUT_FILENO, F_DUPFD_CLOEXEC);
-    original_stdin = fcntl(STDIN_FILENO, F_DUPFD_CLOEXEC);
+    original_stdin  = fcntl(STDIN_FILENO, F_DUPFD_CLOEXEC);
     original_stderr = fcntl(STDERR_FILENO, F_DUPFD_CLOEXEC);
 
     // Duplicate the file descriptor for stdout to fd
@@ -143,11 +143,11 @@ void redirect_output(int fd)
         return;
     }
 
-//    if(dup2(fd, STDIN_FILENO) == -1)
-//    {
-//        perror("dup2");
-//        return;
-//    }
+    //    if(dup2(fd, STDIN_FILENO) == -1)
+    //    {
+    //        perror("dup2");
+    //        return;
+    //    }
 
     // Duplicate the file descriptor for stderr to fd
     if(dup2(fd, STDERR_FILENO) == -1)
@@ -172,11 +172,11 @@ void restore_output(void)
         return;
     }
 
-//    if(dup2(original_stdin, STDIN_FILENO) == -1)
-//    {
-//        perror("dup2");
-//        return;
-//    }
+    //    if(dup2(original_stdin, STDIN_FILENO) == -1)
+    //    {
+    //        perror("dup2");
+    //        return;
+    //    }
 
     //    // Close the duplicated file descriptors
     //    close(original_stdout);
@@ -395,7 +395,7 @@ static void parse_arguments(int argc, char *argv[], char **ip_address, char **po
     else
     {
         printf("invalid num args\n");
-        printf("usage: ./server [ip addr] [port]\n");
+        printf("usage: %s [ip addr] [port]\n", argv[0]);
         exit(EXIT_FAILURE);
     }
 }

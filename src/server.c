@@ -143,11 +143,11 @@ void redirect_output(int fd)
         return;
     }
 
-    if(dup2(fd, STDIN_FILENO) == -1)
-    {
-        perror("dup2");
-        return;
-    }
+//    if(dup2(fd, STDIN_FILENO) == -1)
+//    {
+//        perror("dup2");
+//        return;
+//    }
 
     // Duplicate the file descriptor for stderr to fd
     if(dup2(fd, STDERR_FILENO) == -1)
@@ -172,11 +172,11 @@ void restore_output(void)
         return;
     }
 
-    if(dup2(original_stdin, STDIN_FILENO) == -1)
-    {
-        perror("dup2");
-        return;
-    }
+//    if(dup2(original_stdin, STDIN_FILENO) == -1)
+//    {
+//        perror("dup2");
+//        return;
+//    }
 
     //    // Close the duplicated file descriptors
     //    close(original_stdout);

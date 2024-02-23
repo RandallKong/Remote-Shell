@@ -196,7 +196,6 @@ static void execute_command(char *buffer, int client_socket)
 
     if(childPid == 0)
     {
-        // Construct the full path to the command
         char *path = getenv("PATH");
         char *saveptr;
         char *token = strtok_r(path, ":", &saveptr);
@@ -205,18 +204,14 @@ static void execute_command(char *buffer, int client_socket)
         while(token != NULL)
         {
             snprintf(full_path, sizeof(full_path), "%s/%s", token, args[0]);
-            if(access(full_path, X_OK) == 0)
-            {
-                // Execute the command with execv
-                execv(full_path, args);
-                // If execv returns, an error occurred
-                perror("execv");
-                exit(EXIT_FAILURE);
-            }
+            execv(full_path, args);
             token = strtok_r(NULL, ":", &saveptr);
         }
 
-        // If the command is not found
+        // If the command is not found in the specified path, try executing it from the current directory
+        execv(args[0], args);
+
+        // If both executions fail, print an error message
         fprintf(stderr, "Command not found: %s\n", args[0]);
         exit(EXIT_FAILURE);
     }

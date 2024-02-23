@@ -39,7 +39,7 @@ static void socket_close(int sockfd);
 #define IP_ADDR_INDEX 1
 #define PORT_INDEX 2
 #define BASE_TEN 10
-#define BUFFER_SIZE 1000
+#define BUFFER_SIZE 5000
 
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 static volatile sig_atomic_t exit_flag = 0;
@@ -105,8 +105,8 @@ static void parse_arguments(int argc, char *argv[], char **ip_address, char **po
     else
     {
         printf("invalid num args\n");
-        printf("usage: ./chat [ip addr] [port]\n");
-        printf("usage: ./chat [ip addr] [port] < [.txt file]\n");
+        printf("usage: %s [ip addr] [port]\n", argv[0]);
+        //        printf("usage: ./chat [ip addr] [port] < [.txt file]\n");
         exit(EXIT_FAILURE);
     }
 }
@@ -251,8 +251,9 @@ static void socket_connect(int sockfd, struct sockaddr_storage *addr, in_port_t 
         exit(EXIT_FAILURE);
     }
 
-    printf("Connecting to: %s:%u\n", addr_str, port);
-    printf("You are now chatting with the host of %s:%u\n", addr_str, port);
+    printf("\nYou are now connected to the remote host at %s:%u.\n", addr_str, port);
+    printf("\nType your commands and press Enter to execute them.\n");
+    printf("Press Ctrl-C to quit.\n");
 }
 
 #ifdef __clang__
@@ -290,9 +291,6 @@ static void handle_connection(int sockfd)
         exit(EXIT_FAILURE);
     }
 
-    printf("Connected to the server. Type your messages and press Enter to send. "
-           "Press Ctrl-c to exit or Ctrl-D to close the Server Connection.\n");
-
     printf("$ ");
     fflush(stdout);    // Make sure the prompt is printed immediately
 
@@ -304,6 +302,9 @@ static void handle_connection(int sockfd)
         memset(&readfds, 0, sizeof(readfds));
         FD_SET((long unsigned int)sockfd, &readfds);
         FD_SET((long unsigned int)STDIN_FILENO, &readfds);
+
+        //        printf("$ ");
+        //        fflush(stdout);    // Make sure the prompt is printed immediately
 
         // Wait for activity on the socket or user input
         activity = select(sockfd + 1, &readfds, NULL, NULL, NULL);
@@ -331,6 +332,9 @@ static void handle_connection(int sockfd)
             printf("%s", server_buffer);
             fflush(stdout);
             printf("-------------------------------------------------------------\n");
+            // printf("$ ");
+            fflush(stdout);    // Make sure the prompt is printed immediately
+            //            printf("-------------------------------------------------------------\n");
             printf("$ ");
             fflush(stdout);    // Make sure the prompt is printed immediately
         }
@@ -338,8 +342,8 @@ static void handle_connection(int sockfd)
         // Check if there is user input
         if(FD_ISSET((long unsigned int)STDIN_FILENO, &readfds))
         {
-            char  client_buffer[BUFFER_SIZE];
-//            char *newline_pos;
+            char client_buffer[BUFFER_SIZE];
+            //            char *newline_pos;
 
             if(fgets(client_buffer, sizeof(client_buffer), stdin) == NULL)
             {
@@ -354,14 +358,17 @@ static void handle_connection(int sockfd)
                 break;
             }
 
-//            newline_pos = strchr(client_buffer, '\n');
-//            if(newline_pos != NULL)
-//            {
-//                *newline_pos = '\0';
-//            }
+            //            newline_pos = strchr(client_buffer, '\n');
+            //            if(newline_pos != NULL)
+            //            {
+            //                *newline_pos = '\0';
+            //            }
 
-//            printf("---------------result of -> %s-----------------------------\n", client_buffer);
+            //            printf("---------------result of -> %s-----------------------------\n", client_buffer);
+            // continue;
         }
+
+        printf("$ ");
     }
 
     // Close the client socket when the loop exits

@@ -42,7 +42,7 @@ void restore_output(void);
 #define BASE_TEN 10
 #define MAX_CLIENTS 32
 #define BUFFER_SIZE 10000
-#define UINT16_MAX 65535
+// #define UINT16_MAX 65535
 #define MAX_ARGS 100
 
 struct ClientInfo
@@ -53,6 +53,9 @@ struct ClientInfo
 
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 static int original_stdout;
+
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+static int original_stdin;
 
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 static int original_stderr;
@@ -130,6 +133,7 @@ void redirect_output(int fd)
 {
     // Save the original file descriptors
     original_stdout = fcntl(STDOUT_FILENO, F_DUPFD_CLOEXEC);
+    original_stdin  = fcntl(STDIN_FILENO, F_DUPFD_CLOEXEC);
     original_stderr = fcntl(STDERR_FILENO, F_DUPFD_CLOEXEC);
 
     // Duplicate the file descriptor for stdout to fd
@@ -138,6 +142,12 @@ void redirect_output(int fd)
         perror("dup2");
         return;
     }
+
+    //    if(dup2(fd, STDIN_FILENO) == -1)
+    //    {
+    //        perror("dup2");
+    //        return;
+    //    }
 
     // Duplicate the file descriptor for stderr to fd
     if(dup2(fd, STDERR_FILENO) == -1)
@@ -155,11 +165,18 @@ void restore_output(void)
         perror("dup2");
         return;
     }
+
     if(dup2(original_stderr, STDERR_FILENO) == -1)
     {
         perror("dup2");
         return;
     }
+
+    //    if(dup2(original_stdin, STDIN_FILENO) == -1)
+    //    {
+    //        perror("dup2");
+    //        return;
+    //    }
 
     //    // Close the duplicated file descriptors
     //    close(original_stdout);
@@ -171,19 +188,32 @@ static void execute_command(char *buffer, int client_socket)
     pid_t childPid;
     char *args[MAX_ARGS];
 
-    (void)client_socket;    // used for dup2
-
     parse_command(buffer, args);
 
     childPid = create_child_process();
 
+    (void)client_socket;
+
     if(childPid == 0)
     {
-        // TODO: exec command
-        execvp(args[0], args);
-        // If execvp returns, an error occurred
-        perror("execvp");
-        // printf("executing\n");
+        char *path = getenv("PATH");
+        char *saveptr;
+        char *token = strtok_r(path, ":", &saveptr);
+        char  full_path[BUFFER_SIZE];    // Adjust the size as needed
+
+        while(token != NULL)
+        {
+            snprintf(full_path, sizeof(full_path), "%s/%s", token, args[0]);
+            execv(full_path, args);
+            token = strtok_r(NULL, ":", &saveptr);
+        }
+
+        // If the command is not found in the specified path, try executing it from the current directory
+        execv(args[0], args);
+
+        // If both executions fail, print an error message
+        fprintf(stderr, "Command not found: %s\n", args[0]);
+        exit(EXIT_FAILURE);
     }
     else
     {
@@ -360,7 +390,7 @@ static void parse_arguments(int argc, char *argv[], char **ip_address, char **po
     else
     {
         printf("invalid num args\n");
-        printf("usage: ./server [ip addr] [port]\n");
+        printf("usage: %s [ip addr] [port]\n", argv[0]);
         exit(EXIT_FAILURE);
     }
 }

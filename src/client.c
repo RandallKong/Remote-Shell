@@ -39,7 +39,7 @@ static void socket_close(int sockfd);
 #define IP_ADDR_INDEX 1
 #define PORT_INDEX 2
 #define BASE_TEN 10
-#define BUFFER_SIZE 5000
+#define BUFFER_SIZE 10000
 
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 static volatile sig_atomic_t exit_flag = 0;

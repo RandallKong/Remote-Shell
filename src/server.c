@@ -117,7 +117,7 @@ void *handle_client(void *arg)
         }
 
         restore_output();
-        printf("Received from Client %d: %s\n", client_socket, buffer);
+        printf("Received from Client %d: %s\n", client_index, buffer);
 
         redirect_output(client_socket);
         execute_command(buffer, client_socket);
@@ -313,7 +313,7 @@ static void start_server(struct sockaddr_storage addr, in_port_t port)
             {
                 continue;    // Continue listening for connections
             }
-            for(int i = 0; i < MAX_CLIENTS; ++i)
+            for(int i = 1; i < MAX_CLIENTS; ++i)
             {
                 if(clients[i] == 0)
                 {

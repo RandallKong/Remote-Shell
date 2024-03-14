@@ -42,7 +42,6 @@ void restore_output(void);
 #define BASE_TEN 10
 #define MAX_CLIENTS 32
 #define BUFFER_SIZE 10000
-// #define UINT16_MAX 65535
 #define MAX_ARGS 100
 
 struct ClientInfo
@@ -59,9 +58,6 @@ static int original_stdin;
 
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 static int original_stderr;
-
-// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-// static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 static int clients[MAX_CLIENTS] = {0};
@@ -108,8 +104,6 @@ void *handle_client(void *arg)
             pthread_exit(NULL);
         }
 
-        //        pthread_mutex_lock(&mutex);
-
         newline_pos = strchr(buffer, '\n');
         if(newline_pos != NULL)
         {
@@ -122,8 +116,6 @@ void *handle_client(void *arg)
         redirect_output(client_socket);
         execute_command(buffer, client_socket);
         restore_output();
-
-        //        pthread_mutex_unlock(&mutex);
     }
 
     return NULL;
@@ -142,12 +134,6 @@ void redirect_output(int fd)
         perror("dup2");
         return;
     }
-
-    //    if(dup2(fd, STDIN_FILENO) == -1)
-    //    {
-    //        perror("dup2");
-    //        return;
-    //    }
 
     // Duplicate the file descriptor for stderr to fd
     if(dup2(fd, STDERR_FILENO) == -1)
@@ -171,16 +157,6 @@ void restore_output(void)
         perror("dup2");
         return;
     }
-
-    //    if(dup2(original_stdin, STDIN_FILENO) == -1)
-    //    {
-    //        perror("dup2");
-    //        return;
-    //    }
-
-    //    // Close the duplicated file descriptors
-    //    close(original_stdout);
-    //    close(original_stderr);
 }
 
 static void execute_command(char *buffer, int client_socket)
@@ -199,7 +175,7 @@ static void execute_command(char *buffer, int client_socket)
         char *path = getenv("PATH");
         char *saveptr;
         char *token = strtok_r(path, ":", &saveptr);
-        char  full_path[BUFFER_SIZE];    // Adjust the size as needed
+        char  full_path[BUFFER_SIZE];
 
         while(token != NULL)
         {
@@ -236,7 +212,7 @@ static void parse_command(char *buffer, char *args[])
         token = strtok_r(NULL, " ", &saveptr);
     }
 
-    args[counter] = NULL;    // Null-terminate the array
+    args[counter] = NULL;
 }
 
 pid_t create_child_process(void)
@@ -297,22 +273,23 @@ static void start_server(struct sockaddr_storage addr, in_port_t port)
         activity = select(max_sd + 1, &readfds, NULL, NULL, NULL);
         if(activity == -1)
         {
-            //            perror("select");
-            continue;    // Keep listening for connections
+            continue;
         }
 
-        // New connection
         if(FD_ISSET(server_socket, &readfds))
         {
             int                client_socket;
             int                client_index = -1;
             struct ClientInfo *client_info;
+
             client_addr_len = sizeof(client_addr);
             client_socket   = socket_accept_connection(server_socket, &client_addr, &client_addr_len);
+
             if(client_socket == -1)
             {
-                continue;    // Continue listening for connections
+                continue;
             }
+
             for(int i = 1; i < MAX_CLIENTS; ++i)
             {
                 if(clients[i] == 0)
@@ -326,20 +303,19 @@ static void start_server(struct sockaddr_storage addr, in_port_t port)
             {
                 fprintf(stderr, "Too many clients. Connection rejected.\n");
                 close(client_socket);
-                continue;    // Continue listening for connections
+                continue;
             }
 
             printf("New connection from %s:%d, assigned to Client %d\n", inet_ntoa(((struct sockaddr_in *)&client_addr)->sin_addr), ntohs(((struct sockaddr_in *)&client_addr)->sin_port), client_index);
 
             clients[client_index] = client_socket;
+            client_info           = malloc(sizeof(struct ClientInfo));
 
-            // Create a structure to hold client information
-            client_info = malloc(sizeof(struct ClientInfo));
             if(client_info == NULL)
             {
                 perror("Memory allocation failed");
                 close(client_socket);
-                continue;    // Continue listening for connections
+                continue;
             }
 
             client_info->client_socket = client_socket;
@@ -356,23 +332,6 @@ static void start_server(struct sockaddr_storage addr, in_port_t port)
 
             pthread_detach(tid);
         }
-
-        // Check if there is input from the server's console
-        //        if(FD_ISSET(STDIN_FILENO, &readfds))
-        //        {
-        //            char server_buffer[BUFFER_SIZE];
-        //            fgets(server_buffer, sizeof(server_buffer), stdin);
-        //
-        //            // Broadcast the server's message to all connected clients
-        //            for(int i = 0; i < MAX_CLIENTS; ++i)
-        //            {
-        //                if(clients[i] != 0)
-        //                {
-        //                    send(clients[i], server_buffer, strlen(server_buffer), 0);
-        //                    printf("%d <-------- %s", clients[i], server_buffer);
-        //                }
-        //            }
-        //        }
     }
 
     // Close server socket

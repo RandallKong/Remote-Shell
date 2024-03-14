@@ -1,11 +1,8 @@
 #include <arpa/inet.h>
 #include <errno.h>
 #include <inttypes.h>
-#include <netdb.h>
 #include <netinet/in.h>
-#include <pthread.h>
 #include <signal.h>
-#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -46,15 +43,11 @@ static volatile sig_atomic_t exit_flag = 0;
 
 int main(int argc, char *argv[])
 {
-    char *address;
-    char *port_str;
-
-    in_port_t port;
-
+    char                   *address;
+    char                   *port_str;
+    in_port_t               port;
     int                     sockfd;
     struct sockaddr_storage addr;
-
-    //    int bindResult;
 
     address  = NULL;
     port_str = NULL;
@@ -63,31 +56,11 @@ int main(int argc, char *argv[])
     handle_arguments(address, port_str, &port);
     convert_address(address, &addr);
     sockfd = socket_create(addr.ss_family, SOCK_STREAM, 0);
-    //    bindResult = socket_bind(sockfd, &addr, port);
 
     setup_signal_handler();
 
-    //    if(bindResult != -1)
-    //    {
-    //        struct sockaddr_storage client_addr;
-    //        socklen_t               client_addr_len = sizeof(client_addr);
-    //        int                     client_sockfd;
-    //        start_listening(sockfd);
-    //
-    //        client_sockfd = socket_accept_connection(sockfd, &client_addr, &client_addr_len);
-    //        if(client_sockfd != -1)
-    //        {
-    //            handle_connection(client_sockfd);
-    //            socket_close(client_sockfd);
-    //        }
-    //    }
-    //    else
-    //    {
-    //        socket_connect(sockfd, &addr, port);
-    //        handle_connection(sockfd);
-    //    }
-
     socket_connect(sockfd, &addr, port);
+
     handle_connection(sockfd);
 
     socket_close(sockfd);
@@ -106,7 +79,6 @@ static void parse_arguments(int argc, char *argv[], char **ip_address, char **po
     {
         printf("invalid num args\n");
         printf("usage: %s [ip addr] [port]\n", argv[0]);
-        //        printf("usage: ./chat [ip addr] [port] < [.txt file]\n");
         exit(EXIT_FAILURE);
     }
 }
@@ -291,10 +263,6 @@ static void handle_connection(int sockfd)
         exit(EXIT_FAILURE);
     }
 
-    printf("$ ");
-    fflush(stdout);    // Make sure the prompt is printed immediately
-
-    // Start a simple chat loop
     while(1)
     {
         int    activity;
@@ -302,9 +270,6 @@ static void handle_connection(int sockfd)
         memset(&readfds, 0, sizeof(readfds));
         FD_SET((long unsigned int)sockfd, &readfds);
         FD_SET((long unsigned int)STDIN_FILENO, &readfds);
-
-        //        printf("$ ");
-        //        fflush(stdout);    // Make sure the prompt is printed immediately
 
         // Wait for activity on the socket or user input
         activity = select(sockfd + 1, &readfds, NULL, NULL, NULL);
@@ -328,15 +293,8 @@ static void handle_connection(int sockfd)
 
             server_buffer[bytes_received] = '\0';
 
-            printf("\n");
             printf("%s", server_buffer);
             fflush(stdout);
-            printf("-------------------------------------------------------------\n");
-            // printf("$ ");
-            fflush(stdout);    // Make sure the prompt is printed immediately
-            //            printf("-------------------------------------------------------------\n");
-            printf("$ ");
-            fflush(stdout);    // Make sure the prompt is printed immediately
         }
 
         // Check if there is user input
@@ -357,21 +315,9 @@ static void handle_connection(int sockfd)
                 perror("Error sending message");
                 break;
             }
-
-            //            newline_pos = strchr(client_buffer, '\n');
-            //            if(newline_pos != NULL)
-            //            {
-            //                *newline_pos = '\0';
-            //            }
-
-            //            printf("---------------result of -> %s-----------------------------\n", client_buffer);
-            // continue;
         }
-
-        printf("$ ");
     }
 
-    // Close the client socket when the loop exits
     close(sockfd);
 }
 
@@ -381,7 +327,6 @@ static void socket_close(int sockfd)
 {
     if(close(sockfd) == -1)
     {
-        //        perror("Error closing socket\n");
         exit(EXIT_FAILURE);
     }
 }

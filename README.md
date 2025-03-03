@@ -1,5 +1,7 @@
 # Remote Shell in C
 
+Demo: https://youtu.be/syqsO8UERHo
+
 **Requirements**
 1) concurrent handling multiple client connections.
 2) receives commands from client, executes and sends results to client.
@@ -7,12 +9,6 @@
 4) stdin, stdout, stderr redirection.
 5) must work on macOS, Linux, FreeBSD
 6) works with GCC and Clang compilers
-
-**Bonus Features**
-- I/O Redirection using <, > and >>
-- Background tasks (&)
-- Piping (|)
-- Signal handling (Ctrl-C)
 
 **Running project**
 1) ./generate-cmakelists.sh
